@@ -1,3 +1,5 @@
+using RoomHub.Api.Common;
+
 namespace RoomHub.Api.Features.CreateRoom;
 
 public static class CreateRoomEndpoint
@@ -6,7 +8,9 @@ public static class CreateRoomEndpoint
     {
         app.MapPost("/api/rooms/", (CreateRoomRequest request, CreateRoomHandler handler) =>
         {
-            var room = handler.Handle(request.Name, request.Capacity);
+            var result = handler.Handle(request.Name, request.Capacity);
+            if (!result.IsSuccess) return result.Error.ToProblem();
+            var room = result.Value;
             return TypedResults.Created(
                 $"/api/rooms/{room.Id}",
                 new CreateRoomResponse(room.Id, room.Name, room.Capacity));

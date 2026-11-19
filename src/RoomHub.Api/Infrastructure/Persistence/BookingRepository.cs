@@ -8,6 +8,16 @@ public class BookingRepository
     private readonly List<Booking> _bookings = new();
     private readonly object _lock = new();
 
+    public T ExecuteLocked<T>(Func<T> action)
+    {
+        lock (_lock) return action();
+    }
+
+    public List<Booking> ListAll()
+    {
+        lock (_lock) return _bookings.ToList();
+    }
+
     public void Add(Booking booking)
     {
         lock (_lock)
