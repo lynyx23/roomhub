@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using RoomHub.Api.Common;
+using RoomHub.Api.Common.CQRS;
+using RoomHub.Api.Domain;
 
 namespace RoomHub.Api.Features.GetBooking;
 
@@ -6,14 +9,11 @@ public static class GetBookingEndpoint
 {
     public static void MapGetBookingEndpoint(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/bookings/{id:guid}", (Guid id, GetBookingHandler handler) =>
+        app.MapGet("/api/bookings/{id:guid}", async Task<Results<Ok<GetBookingResponse>, ProblemHttpResult>>
+            (Guid id, IQueryHandler<GetBookingQuery, GetBookingResponse?> handler, CancellationToken cancellationToken) =>
         {
-            var result = handler.Handle(id);
-            if (!result.IsSuccess) return result.Error.ToProblem();
-            var booking = result.Value;
-            return TypedResults.Ok(new GetBookingResponse(
-                booking.Id, booking.RoomId, booking.BookedBy, booking.StartUtc,
-                booking.EndUtc, booking.Attendees, booking.Status.ToString()));
+            var response = await handler.HandleAsync(new(id), cancellationToken);
+            return response is null ? BookingErrors.NotFound.ToProblem() : TypedResults.Ok(response);
         }).WithTags("Bookings");
     }
 }

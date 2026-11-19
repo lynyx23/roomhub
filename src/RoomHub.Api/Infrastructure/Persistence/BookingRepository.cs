@@ -1,44 +1,22 @@
+using Microsoft.EntityFrameworkCore;
 using RoomHub.Api.Domain;
 
 namespace RoomHub.Api.Infrastructure.Persistence;
 
-// Starter: in-memory data. It is lost when the application restarts.
-public class BookingRepository
+public sealed class BookingRepository(RoomHubDbContext context) : IBookingRepository
 {
-    private readonly List<Booking> _bookings = new();
-    private readonly object _lock = new();
+    public Task<Booking?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+        => context.Bookings.SingleOrDefaultAsync(b => b.Id == id, cancellationToken);
 
-    public T ExecuteLocked<T>(Func<T> action)
+    public async Task<IReadOnlyList<Booking>> ListActiveForValidationAsync(Guid roomId, string? bookedBy,
+        CancellationToken cancellationToken = default)
     {
-        lock (_lock) return action();
+        var participant = bookedBy?.Trim();
+        return await context.Bookings.AsNoTracking()
+            .Where(b => b.Status == BookingStatus.Active && (b.RoomId == roomId || b.BookedBy == participant))
+            .ToListAsync(cancellationToken);
     }
 
-    public List<Booking> ListAll()
-    {
-        lock (_lock) return _bookings.ToList();
-    }
-
-    public void Add(Booking booking)
-    {
-        lock (_lock)
-        {
-            _bookings.Add(booking);
-        }
-    }
-
-    public Booking? Get(Guid id)
-    {
-        lock (_lock)
-        {
-            return _bookings.FirstOrDefault(b => b.Id == id);
-        }
-    }
-
-    public List<Booking> ListForRoom(Guid roomId)
-    {
-        lock (_lock)
-        {
-            return _bookings.Where(b => b.RoomId == roomId).ToList();
-        }
-    }
+    public async Task AddAsync(Booking booking, CancellationToken cancellationToken = default)
+        => await context.Bookings.AddAsync(booking, cancellationToken);
 }

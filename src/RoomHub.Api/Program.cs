@@ -1,28 +1,17 @@
-using RoomHub.Api.Features.CreateRoom;
-using RoomHub.Api.Features.GetRoom;
-using RoomHub.Api.Features.CreateBooking;
-using RoomHub.Api.Features.GetBooking;
-using RoomHub.Api.Features.CancelBooking;
+using RoomHub.Api.Common;
+using RoomHub.Api.Common.CQRS;
 using RoomHub.Api.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddProblemDetails();
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<RoomRepository>();
-builder.Services.AddSingleton<BookingRepository>();
-builder.Services.AddScoped<CreateRoomHandler>();
-builder.Services.AddScoped<GetRoomHandler>();
-builder.Services.AddScoped<CreateBookingHandler>();
-builder.Services.AddScoped<GetBookingHandler>();
-builder.Services.AddScoped<CancelBookingHandler>();
+builder.Services.AddHandlers();
+builder.Services.AddPersistence(builder.Configuration.GetConnectionString("RoomHubDB")
+    ?? throw new InvalidOperationException("Connection string 'RoomHubDB' is required."));
 
 var app = builder.Build();
-
-app.MapGet("/", () => "RoomHub API is running.");
-app.MapCreateRoomEndpoint();
-app.MapGetRoomEndpoint();
-app.MapCreateBookingEndpoint();
-app.MapGetBookingEndpoint();
-app.MapCancelBookingEndpoint();
-
-app.Run();
+await app.Services.InitializeDatabaseAsync();
+app.UseStatusCodePages();
+app.MapRoomHubEndpoints();
+await app.RunAsync();

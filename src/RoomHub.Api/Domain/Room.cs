@@ -10,9 +10,9 @@ public sealed class Room
     public static Result<Room> Create(string? name, int capacity)
     {
         if (string.IsNullOrWhiteSpace(name))
-            return Result<Room>.Failure(new("InvalidName", "Room name is required.", ErrorType.Validation));
+            return Result<Room>.Failure(RoomErrors.InvalidName);
         if (capacity <= 0)
-            return Result<Room>.Failure(new("InvalidCapacity", "Capacity must be positive.", ErrorType.Validation));
+            return Result<Room>.Failure(RoomErrors.InvalidCapacity);
         return Result<Room>.Success(new Room { Id = Guid.NewGuid(), Name = name.Trim(), Capacity = capacity });
     }
 }

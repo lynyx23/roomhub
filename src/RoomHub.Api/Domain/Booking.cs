@@ -56,9 +56,9 @@ public sealed class Booking
     public Result<Unit> Cancel(DateTime nowUtc)
     {
         if (Status == BookingStatus.Cancelled)
-            return Result<Unit>.Failure(new("BookingAlreadyCancelled", "The booking is already cancelled.", ErrorType.Conflict));
+            return Result<Unit>.Failure(BookingErrors.AlreadyCancelled);
         if (StartUtc - nowUtc < MinimumCancellationNotice)
-            return Result<Unit>.Failure(new("CancellationTooLate", "A booking can only be cancelled at least 60 minutes before it starts.", ErrorType.Conflict));
+            return Result<Unit>.Failure(BookingErrors.CancellationTooLate);
         Status = BookingStatus.Cancelled;
         return Result<Unit>.Success(new Unit());
     }

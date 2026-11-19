@@ -1,15 +1,20 @@
+using RoomHub.Api.Common.CQRS;
 using RoomHub.Api.Domain;
-using RoomHub.Api.Infrastructure.Persistence;
 
 namespace RoomHub.Api.Features.CancelBooking;
 
-public sealed class CancelBookingHandler(BookingRepository bookings, TimeProvider timeProvider)
+public sealed class CancelBookingHandler(IBookingRepository bookings, IUnitOfWork unitOfWork, TimeProvider timeProvider)
+    : ICommandHandler<CancelBookingCommand, Unit>
 {
-    public Result<Unit> Handle(Guid id) => bookings.ExecuteLocked(() =>
+    public async Task<Result<Unit>> HandleAsync(CancelBookingCommand command, CancellationToken cancellationToken = default)
     {
-        var booking = bookings.Get(id);
-        return booking is null
-            ? Result<Unit>.Failure(new("BookingNotFound", "The booking does not exist.", ErrorType.NotFound))
-            : booking.Cancel(timeProvider.GetUtcNow().UtcDateTime);
-    });
+        await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
+        var booking = await bookings.GetAsync(command.Id, cancellationToken);
+        if (booking is null) return Result<Unit>.Failure(BookingErrors.NotFound);
+        var result = booking.Cancel(timeProvider.GetUtcNow().UtcDateTime);
+        if (!result.IsSuccess) return result;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return result;
+    }
 }
