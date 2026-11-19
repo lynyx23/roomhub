@@ -1,6 +1,6 @@
-using RoomHub.Api.Models;
+using RoomHub.Api.Domain;
 
-namespace RoomHub.Api.Repositories;
+namespace RoomHub.Api.Infrastructure.Persistence;
 
 // Starter: in-memory data. It is lost when the application restarts.
 public class RoomRepository
